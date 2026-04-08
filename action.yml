@@ -86,9 +86,9 @@ runs:
 
         # Gate status
         if errors == 0:
-            gate = ":white_check_mark: **Accessibility Gate passed**"
+            gate = ":white_check_mark: **508 Compliance — passed**"
         else:
-            gate = ":x: **Accessibility Gate failed**"
+            gate = ":x: **508 Compliance — failed**"
 
         lines = []
         lines.append(gate)
