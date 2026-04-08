@@ -86,29 +86,25 @@ runs:
 
         # Gate status
         if errors == 0:
-            gate = ":white_check_mark: **508 Compliance — passed**"
+            gate = "**508 Compliance passed**"
         else:
-            gate = ":x: **508 Compliance — failed**"
+            gate = "**508 Compliance failed**"
 
         lines = []
         lines.append(gate)
         lines.append("")
         lines.append("**Issues**")
-        if errors > 0:
-            lines.append(f"- :red_circle: {errors} error(s)")
-        else:
-            lines.append(f"- :white_check_mark: 0 errors")
-        if warnings > 0:
-            lines.append(f"- :warning: {warnings} warning(s)")
-        else:
-            lines.append(f"- :white_check_mark: 0 warnings")
+        err_mark = "&#x2714;" if errors == 0 else "&#x2716;"
+        warn_mark = "&#x2714;" if warnings == 0 else "&#x2716;"
+        lines.append(f"- {err_mark} {errors} error(s)")
+        lines.append(f"- {warn_mark} {warnings} warning(s)")
         if info > 0:
-            lines.append(f"- :information_source: {info} info")
+            lines.append(f"- &#x2139; {info} info")
 
         lines.append("")
         lines.append("**Measures**")
-        lines.append(f"- :white_check_mark: {files} file(s) scanned")
-        lines.append(f"- :white_check_mark: {len(data['checks_run'])} check module(s) run")
+        lines.append(f"- &#x2714; {files} file(s) scanned")
+        lines.append(f"- &#x2714; {len(data['checks_run'])} check module(s) run")
 
         if findings:
             lines.append("")
@@ -122,13 +118,9 @@ runs:
                 workspace = os.environ.get("GITHUB_WORKSPACE", "")
                 if workspace and fp.startswith(workspace):
                     fp = fp[len(workspace):].lstrip("/")
-                sev_icon = {
-                    "error": ":red_circle:",
-                    "warning": ":warning:",
-                    "info": ":information_source:",
-                }[f["severity"]]
+                sev_label = f["severity"].upper()
                 wcag = f.get("wcag_linked", f.get("wcag", ""))
-                lines.append(f"| `{fp}` | {f['line']} | {sev_icon} | `{f['check_id']}` | {wcag} | {f['message']} |")
+                lines.append(f"| `{fp}` | {f['line']} | {sev_label} | `{f['check_id']}` | {wcag} | {f['message']} |")
             lines.append("")
             lines.append("</details>")
 
