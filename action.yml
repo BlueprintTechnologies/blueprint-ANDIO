@@ -84,27 +84,29 @@ runs:
         findings = data["findings"]
         not_checked = data["not_checked"]
 
-        # Gate status
+        # Shields.io badge helpers
+        def badge(label, value, color):
+            label_enc = label.replace(" ", "_").replace("-", "--")
+            return f"![{label}: {value}](https://img.shields.io/badge/{label_enc}-{value}-{color}?style=flat-square)"
+
+        # Gate status badge
         if errors == 0:
-            gate = "**508 Compliance passed**"
+            gate_badge = badge("508 Compliance", "passed", "brightgreen")
         else:
-            gate = "**508 Compliance failed**"
+            gate_badge = badge("508 Compliance", "failed", "red")
 
         lines = []
-        lines.append(gate)
+        lines.append(gate_badge)
         lines.append("")
         lines.append("**Issues**")
-        err_mark = "&#x2714;" if errors == 0 else "&#x2716;"
-        warn_mark = "&#x2714;" if warnings == 0 else "&#x2716;"
-        lines.append(f"- {err_mark} {errors} error(s)")
-        lines.append(f"- {warn_mark} {warnings} warning(s)")
-        if info > 0:
-            lines.append(f"- &#x2139; {info} info")
+        err_color = "red" if errors > 0 else "brightgreen"
+        warn_color = "orange" if warnings > 0 else "brightgreen"
+        info_color = "blue"
+        lines.append(f"{badge('errors', str(errors), err_color)} {badge('warnings', str(warnings), warn_color)} {badge('info', str(info), info_color)}")
 
         lines.append("")
         lines.append("**Measures**")
-        lines.append(f"- &#x2714; {files} file(s) scanned")
-        lines.append(f"- &#x2714; {len(data['checks_run'])} check module(s) run")
+        lines.append(f"{badge('files scanned', str(files), '4a86cf')} {badge('check modules', str(len(data['checks_run'])), '4a86cf')}")
 
         if findings:
             lines.append("")
@@ -113,14 +115,15 @@ runs:
             lines.append("| File | Line | Severity | Check | Section 508 / WCAG | Message |")
             lines.append("|------|------|----------|-------|-------------------|---------|")
             for f in sorted(findings, key=lambda x: (x["file_path"], x["line"])):
-                # Shorten file path to relative
                 fp = f["file_path"]
                 workspace = os.environ.get("GITHUB_WORKSPACE", "")
                 if workspace and fp.startswith(workspace):
                     fp = fp[len(workspace):].lstrip("/")
-                sev_label = f["severity"].upper()
+                sev = f["severity"]
+                sev_color = {"error": "red", "warning": "orange", "info": "blue"}[sev]
+                sev_badge = f"![{sev}](https://img.shields.io/badge/-{sev.upper()}-{sev_color}?style=flat-square)"
                 wcag = f.get("wcag_linked", f.get("wcag", ""))
-                lines.append(f"| `{fp}` | {f['line']} | {sev_label} | `{f['check_id']}` | {wcag} | {f['message']} |")
+                lines.append(f"| `{fp}` | {f['line']} | {sev_badge} | `{f['check_id']}` | {wcag} | {f['message']} |")
             lines.append("")
             lines.append("</details>")
 
