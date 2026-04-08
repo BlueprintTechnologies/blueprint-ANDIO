@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title><%= @title %></title>
+</head>
+<body>
+    <h1><%= @heading %></h1>
+    <img alt="<%= @alt_text %>" src="/logo.png">
+    <% if @show_banner %>
+    <div class="banner">Welcome</div>
+    <% end %>
+</body>
+</html>

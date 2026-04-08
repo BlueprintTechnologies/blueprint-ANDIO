@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Link Test</title></head>
+<body>
+    <!-- ANDI-0069: Anchor target not found -->
+    <a href="#nonexistent">Broken anchor</a>
+
+    <!-- Valid anchor target (should not trigger) -->
+    <a href="#section1">Go to section</a>
+    <div id="section1">Section content</div>
+
+    <!-- ANDI-007B: Deprecated name attribute -->
+    <a name="old-anchor">Old style</a>
+
+    <!-- ANDI-0128: No href, no id, no tabindex -->
+    <a>Orphan link</a>
+
+    <!-- ANDI-0168: No href but has id (may not be recognized) -->
+    <a id="some-id">Has ID but no href</a>
+
+    <!-- Should NOT trigger 0168 (has role) -->
+    <a id="btn" role="button" tabindex="0">Button-like</a>
+
+    <!-- ANDI-0161: Ambiguous links -->
+    <a href="/page-a">View order status</a>
+    <a href="/page-b">View order status</a>
+
+    <!-- Same text, same href — NOT ambiguous -->
+    <a href="/page-c">Home</a>
+    <a href="/page-c">Home</a>
+
+    <!-- ANDI-0163: Vague link text -->
+    <a href="/foo">click here</a>
+    <a href="/bar">Read More</a>
+    <a href="/baz">here</a>
+
+    <!-- Descriptive text — should NOT trigger -->
+    <a href="/docs">View documentation</a>
+</body>
+</html>

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "andio"
+version = "0.1.0"
+description = "Accessible Name and Description Inspector Offline — static 508/WCAG accessibility scanner for HTML templates"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "click>=8.0",
+    "tinycss2>=1.2",
+]
+
+[project.scripts]
+andio = "andio.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["andio*"]

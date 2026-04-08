@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Focusable Test</title></head>
+<body>
+    <!-- ANDI-0002: Form elements with no accessible name -->
+    <input type="text" id="no-name-input">
+    <select id="no-name-select"><option>A</option></select>
+    <textarea id="no-name-textarea"></textarea>
+
+    <!-- ANDI-0008: Non-form focusable element with no name -->
+    <div tabindex="0"></div>
+
+    <!-- These should NOT trigger (have names) -->
+    <input type="text" id="has-label"><label for="has-label">Name</label>
+    <button>Click Me</button>
+    <input type="submit">
+    <a href="/home">Home</a>
+    <input type="text" aria-label="Search" id="search">
+
+    <!-- ANDI-0052: Multi-character accessKey -->
+    <button accesskey="ab">Multi AK</button>
+
+    <!-- ANDI-0054/0055/0056: Duplicate accessKeys -->
+    <button accesskey="x">First X</button>
+    <button accesskey="x">Second X</button>
+    <a href="#" accesskey="y">First Y</a>
+    <a href="#" accesskey="y">Second Y</a>
+    <div tabindex="0" accesskey="z" aria-label="First Z">First Z</div>
+    <div tabindex="0" accesskey="z" aria-label="Second Z">Second Z</div>
+
+    <!-- ANDI-0121: Focusable with negative tabindex (has name) -->
+    <button tabindex="-1">Hidden Button</button>
+
+    <!-- ANDI-0122: Focusable with negative tabindex and no name -->
+    <div tabindex="-1"></div>
+
+    <!-- ANDI-0123: Iframe with negative tabindex -->
+    <iframe tabindex="-1" src="about:blank" title="Hidden Frame"></iframe>
+</body>
+</html>

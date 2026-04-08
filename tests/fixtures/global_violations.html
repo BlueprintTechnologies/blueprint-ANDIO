@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Test Page</title>
+    <title>Duplicate Title</title>
+</head>
+<body>
+    <!-- ANDI-0012: Duplicate label for -->
+    <label for="name">Name</label>
+    <label for="name">Also Name</label>
+    <input id="name" type="text">
+
+    <!-- ANDI-0021: aria-describedby used alone (no accessible name) -->
+    <div aria-describedby="desc1"></div>
+    <span id="desc1">Description text</span>
+
+    <!-- ANDI-0022: Legend without fieldset -->
+    <legend>Orphan Legend</legend>
+
+    <!-- ANDI-0031: Misspelled aria-labeledby -->
+    <div aria-labeledby="foo">Misspelled</div>
+
+    <!-- ANDI-0033: Multiple roles -->
+    <div role="button link">Multi-role</div>
+
+    <!-- ANDI-0063/0065: Referenced IDs not found -->
+    <div aria-labelledby="nonexistent">Missing ref</div>
+    <div aria-controls="also-missing">Missing control ref</div>
+
+    <!-- ANDI-006B: Reference to legend -->
+    <legend id="leg1">Legend Text</legend>
+    <div aria-labelledby="leg1">Points to legend</div>
+
+    <!-- ANDI-006D: Duplicate reference -->
+    <div aria-labelledby="desc1 desc1">Duped ref</div>
+
+    <!-- ANDI-006F: Label mismatch -->
+    <label for="wrong-id">
+        <input id="right-id" type="text">
+    </label>
+
+    <!-- ANDI-0074: More legends than fieldsets -->
+    <fieldset>
+        <legend>One fieldset, two legends above</legend>
+    </fieldset>
+
+    <!-- ANDI-0078: Deprecated HTML5 attributes -->
+    <table summary="deprecated summary" border="1">
+        <tr><td>data</td></tr>
+    </table>
+
+    <!-- ANDI-0081: Alt on non-image -->
+    <div alt="should not be here">Bad alt</div>
+
+    <!-- ANDI-0091: Label for non-form element -->
+    <label for="not-a-form">Label</label>
+    <div id="not-a-form">Not a form element</div>
+
+    <!-- ANDI-0101: Unreliable combo -->
+    <div aria-label="Name" aria-labelledby="desc1">Both</div>
+
+    <!-- ANDI-0112: Problematic JS event -->
+    <div ondblclick="doStuff()">Double click only</div>
+
+    <!-- ANDI-0151: Long attribute -->
+    <img alt="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" src="x.png">
+
+    <!-- ANDI-0200: Non-unique buttons -->
+    <button>Submit</button>
+    <button>Submit</button>
+
+    <!-- ANDI-0210: Small clickable area -->
+    <input type="checkbox" id="no-label-checkbox">
+    <input type="radio" id="no-label-radio">
+</body>
+</html>

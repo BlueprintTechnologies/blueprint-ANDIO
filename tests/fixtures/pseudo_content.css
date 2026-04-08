@@ -1,0 +1,32 @@
+/* Status indicators */
+.status-good::before {
+    content: "OK";
+    color: green;
+}
+
+.status-bad::after {
+    content: "Error: check logs";
+    color: red;
+}
+
+/* Decorative — empty content is fine */
+.divider::before {
+    content: "";
+    display: block;
+}
+
+/* Background image */
+.hero {
+    background-image: url('/images/hero.png');
+    height: 400px;
+}
+
+.gradient-bg {
+    background: linear-gradient(to right, #000, #fff);
+}
+
+/* Not relevant */
+.normal {
+    color: blue;
+    font-size: 14px;
+}

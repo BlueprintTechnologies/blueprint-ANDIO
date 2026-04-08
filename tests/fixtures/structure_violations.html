@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Structure Test</title></head>
+<body>
+    <!-- ANDI-0005: Figure without figcaption or name -->
+    <figure>
+        <img alt="Chart data" src="chart.png">
+    </figure>
+
+    <!-- Valid figure (should NOT trigger) -->
+    <figure>
+        <img alt="Photo" src="photo.png">
+        <figcaption>A photo</figcaption>
+    </figure>
+    <figure aria-label="Named figure">
+        <img alt="Diagram" src="diagram.png">
+    </figure>
+
+    <!-- ANDI-0133: Empty live region -->
+    <div aria-live="polite"></div>
+
+    <!-- ANDI-0182: Live region with form element -->
+    <div aria-live="assertive">
+        Status: OK
+        <input type="text">
+    </div>
+
+    <!-- ANDI-0184: Live region on non-container element -->
+    <img aria-live="polite" alt="Status" src="status.png">
+
+    <!-- Valid live region (should NOT trigger) -->
+    <div role="status">All systems operational</div>
+
+    <!-- ANDI-0191: Heading level conflicts with aria-level -->
+    <h2 aria-level="4">Conflicting heading</h2>
+
+    <!-- ANDI-0192: role=heading without aria-level -->
+    <div role="heading">Fake heading</div>
+
+    <!-- Valid heading (should NOT trigger) -->
+    <h3>Normal heading</h3>
+    <div role="heading" aria-level="3">Valid custom heading</div>
+
+    <!-- ANDI-0194: List item in container with invalid role -->
+    <div role="navigation">
+        <li>Item in wrong container</li>
+    </div>
+
+    <!-- Valid list (should NOT trigger) -->
+    <ul>
+        <li>Normal item</li>
+    </ul>
+</body>
+</html>

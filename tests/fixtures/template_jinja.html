@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ page_title }}</title>
+</head>
+<body>
+    {# This is a Jinja2 comment #}
+    <h1>{{ heading }}</h1>
+    <img alt="{{ img.alt }}" src="/logo.png">
+    <img alt="Static alt text" src="/banner.png">
+    {% for item in items %}
+    <a href="{{ item.url }}">{{ item.name }}</a>
+    {% endfor %}
+    <button aria-label="{{ btn_label }}">{% block content %}{% endblock %}</button>
+</body>
+</html>

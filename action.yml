@@ -1,0 +1,191 @@
+name: 'ANDIO Accessibility Scan'
+description: 'Static 508/WCAG accessibility scanner for HTML templates — ported from SSA ANDI'
+branding:
+  icon: 'eye'
+  color: 'blue'
+
+inputs:
+  paths:
+    description: 'Space-separated list of files or directories to scan'
+    required: true
+  checks:
+    description: 'Comma-separated list of check modules to run (default: all)'
+    required: false
+    default: ''
+  fail-on-error:
+    description: 'Fail the workflow if error-severity findings exist'
+    required: false
+    default: 'false'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+
+outputs:
+  errors:
+    description: 'Number of error-severity findings'
+    value: ${{ steps.scan.outputs.errors }}
+  warnings:
+    description: 'Number of warning-severity findings'
+    value: ${{ steps.scan.outputs.warnings }}
+  total:
+    description: 'Total number of findings'
+    value: ${{ steps.scan.outputs.total }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install ANDIO
+      shell: bash
+      run: pip install ${{ github.action_path }}
+
+    - name: Run ANDIO scan
+      id: scan
+      shell: bash
+      run: |
+        CHECKS_FLAG=""
+        if [ -n "${{ inputs.checks }}" ]; then
+          CHECKS_FLAG="--checks ${{ inputs.checks }}"
+        fi
+
+        # Run scan and capture JSON output
+        andio scan ${{ inputs.paths }} --format json $CHECKS_FLAG > /tmp/andio-results.json 2>&1 || true
+
+        # Extract counts from JSON
+        ERRORS=$(python3 -c "import json; d=json.load(open('/tmp/andio-results.json')); print(d['summary']['errors'])")
+        WARNINGS=$(python3 -c "import json; d=json.load(open('/tmp/andio-results.json')); print(d['summary']['warnings'])")
+        INFO=$(python3 -c "import json; d=json.load(open('/tmp/andio-results.json')); print(d['summary']['info'])")
+        TOTAL=$((ERRORS + WARNINGS + INFO))
+
+        echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+        echo "warnings=$WARNINGS" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+
+    - name: Generate PR comment
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        python3 << 'PYEOF'
+        import json
+        import os
+
+        with open("/tmp/andio-results.json") as f:
+            data = json.load(f)
+
+        errors = data["summary"]["errors"]
+        warnings = data["summary"]["warnings"]
+        info = data["summary"]["info"]
+        files = data["summary"]["files_scanned"]
+        findings = data["findings"]
+        not_checked = data["not_checked"]
+
+        # Gate status
+        if errors == 0:
+            gate = ":white_check_mark: **Accessibility Gate passed**"
+        else:
+            gate = ":x: **Accessibility Gate failed**"
+
+        lines = []
+        lines.append(gate)
+        lines.append("")
+        lines.append("**Issues**")
+        if errors > 0:
+            lines.append(f"- :red_circle: {errors} error(s)")
+        else:
+            lines.append(f"- :white_check_mark: 0 errors")
+        if warnings > 0:
+            lines.append(f"- :warning: {warnings} warning(s)")
+        else:
+            lines.append(f"- :white_check_mark: 0 warnings")
+        if info > 0:
+            lines.append(f"- :information_source: {info} info")
+
+        lines.append("")
+        lines.append("**Measures**")
+        lines.append(f"- :white_check_mark: {files} file(s) scanned")
+        lines.append(f"- :white_check_mark: {len(data['checks_run'])} check module(s) run")
+
+        if findings:
+            lines.append("")
+            lines.append("<details><summary>Findings detail</summary>")
+            lines.append("")
+            lines.append("| File | Line | Severity | Check | Section 508 / WCAG | Message |")
+            lines.append("|------|------|----------|-------|-------------------|---------|")
+            for f in sorted(findings, key=lambda x: (x["file_path"], x["line"])):
+                # Shorten file path to relative
+                fp = f["file_path"]
+                workspace = os.environ.get("GITHUB_WORKSPACE", "")
+                if workspace and fp.startswith(workspace):
+                    fp = fp[len(workspace):].lstrip("/")
+                sev_icon = {
+                    "error": ":red_circle:",
+                    "warning": ":warning:",
+                    "info": ":information_source:",
+                }[f["severity"]]
+                wcag = f.get("wcag", "")
+                lines.append(f"| `{fp}` | {f['line']} | {sev_icon} | `{f['check_id']}` | {wcag} | {f['message']} |")
+            lines.append("")
+            lines.append("</details>")
+
+        lines.append("")
+        lines.append("<details><summary>Not checked (requires live browser)</summary>")
+        lines.append("")
+        for item in not_checked:
+            lines.append(f"- {item}")
+        lines.append("")
+        lines.append("</details>")
+        lines.append("")
+        lines.append("*[ANDIO](https://github.com/BlueprintTechnologies/blueprint-ANDIO) — Accessible Name and Description Inspector Offline*")
+
+        body = "\n".join(lines)
+
+        with open("/tmp/andio-pr-comment.md", "w") as f:
+            f.write(body)
+        PYEOF
+
+    - name: Post or update PR comment
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: andio-scan
+        path: /tmp/andio-pr-comment.md
+
+    - name: Add inline annotations
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: |
+        python3 << 'PYEOF'
+        import json
+        import os
+
+        with open("/tmp/andio-results.json") as f:
+            data = json.load(f)
+
+        workspace = os.environ.get("GITHUB_WORKSPACE", "")
+        for f in data["findings"]:
+            fp = f["file_path"]
+            if workspace and fp.startswith(workspace):
+                fp = fp[len(workspace):].lstrip("/")
+            level = "error" if f["severity"] == "error" else "warning"
+            wcag = f.get("wcag", "")
+            wcag_suffix = f" [{wcag}]" if wcag else ""
+            msg = f"[{f['check_id']}] {f['message']}{wcag_suffix}"
+            print(f"::{level} file={fp},line={f['line']}::{msg}")
+        PYEOF
+
+    - name: Write step summary
+      shell: bash
+      run: |
+        andio scan ${{ inputs.paths }} --format github-summary ${{ inputs.checks && format('--checks {0}', inputs.checks) || '' }} >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+
+    - name: Enforce gate
+      if: inputs.fail-on-error == 'true' && steps.scan.outputs.errors != '0'
+      shell: bash
+      run: |
+        echo "::error::ANDIO found ${{ steps.scan.outputs.errors }} accessibility error(s). See PR comment for details."
+        exit 1

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Graphics Test</title></head>
+<body>
+    <!-- ANDI-0174: Redundant phrase -->
+    <img alt="image of a cat" src="cat.png">
+    <img alt="Photo of the team" src="team.jpg">
+
+    <!-- ANDI-0175: File name in alt -->
+    <img alt="banner_2024.jpg" src="banner.jpg">
+
+    <!-- ANDI-0176: Non-descriptive alt -->
+    <img alt="image" src="logo.png">
+    <img alt="Photo" src="pic.jpg">
+    <img alt="icon" src="icon.svg">
+
+    <!-- Valid alt text (should NOT trigger) -->
+    <img alt="Company logo showing a blue mountain" src="logo.png">
+    <img alt="Dashboard showing deployment metrics" src="dashboard.png">
+
+    <!-- Empty alt (decorative, should NOT trigger) -->
+    <img alt="" src="spacer.gif">
+
+    <!-- No alt at all (not our check, axe handles this) -->
+    <img src="orphan.png">
+</body>
+</html>
