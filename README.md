@@ -96,4 +96,4 @@ See [docs/andio-gap-analysis.md](docs/andio-gap-analysis.md) for the full mappin
 
 ## License
 
-MIT
+Apache 2.0 — derivative work based on [SSA's ANDI](https://github.com/SSAgov/ANDI), also Apache 2.0. See [NOTICE](NOTICE) for attribution.

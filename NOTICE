@@ -1,0 +1,15 @@
+ANDIO — Accessible Name and Description Inspector Offline
+Copyright 2026 Blueprint Technologies
+
+This product is a derivative work based on ANDI (Accessible Name and
+Description Inspector), originally developed by the Social Security
+Administration (SSA), Accessible Solutions Branch.
+
+Original work: https://github.com/SSAgov/ANDI
+Licensed under the Apache License, Version 2.0
+
+ANDIO ports ANDI's accessibility check logic from browser-based JavaScript
+to a static Python scanner for CI/CD integration. The check rules, alert
+definitions, and WCAG mappings are derived from ANDI's source code. ANDIO
+does not contain any original ANDI source code — the implementation is an
+independent rewrite in Python using BeautifulSoup for HTML parsing.
