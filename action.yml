@@ -127,7 +127,7 @@ runs:
                     "warning": ":warning:",
                     "info": ":information_source:",
                 }[f["severity"]]
-                wcag = f.get("wcag", "")
+                wcag = f.get("wcag_linked", f.get("wcag", ""))
                 lines.append(f"| `{fp}` | {f['line']} | {sev_icon} | `{f['check_id']}` | {wcag} | {f['message']} |")
             lines.append("")
             lines.append("</details>")

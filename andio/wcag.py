@@ -13,6 +13,24 @@ from dataclasses import dataclass
 from typing import Dict, List
 
 
+_WCAG_BASE_URL = "https://www.w3.org/WAI/WCAG21/Understanding"
+
+# W3C Understanding doc slugs — explicit for reliability
+_SLUGS = {
+    "1.1.1": "non-text-content",
+    "1.3.1": "info-and-relationships",
+    "2.1.1": "keyboard",
+    "2.4.1": "bypass-blocks",
+    "2.4.2": "page-titled",
+    "2.4.4": "link-purpose-in-context",
+    "2.4.6": "headings-and-labels",
+    "2.5.3": "label-in-name",
+    "3.3.2": "labels-or-instructions",
+    "4.1.1": "parsing",
+    "4.1.2": "name-role-value",
+}
+
+
 @dataclass
 class WCAGCriterion:
     """A single WCAG success criterion."""
@@ -21,9 +39,20 @@ class WCAGCriterion:
     level: str       # "A", "AA", or "AAA"
 
     @property
+    def url(self) -> str:
+        """W3C Understanding doc URL for this criterion."""
+        # W3C uses specific slugs — map them explicitly for reliability
+        return f"{_WCAG_BASE_URL}/{_SLUGS.get(self.id, self.id)}"
+
+    @property
     def ref(self) -> str:
         """Short reference string for reports."""
         return f"WCAG {self.id} ({self.level})"
+
+    @property
+    def ref_linked(self) -> str:
+        """Markdown-linked reference for GitHub comments."""
+        return f"[WCAG {self.id} ({self.level})]({self.url})"
 
     @property
     def section_508(self) -> str:
@@ -128,6 +157,17 @@ def format_wcag_short(check_id: str) -> str:
     if not refs:
         return ""
     return ", ".join(r.ref for r in refs)
+
+
+def format_wcag_linked(check_id: str) -> str:
+    """Format WCAG references as clickable Markdown links for GitHub comments.
+
+    Example: "[WCAG 4.1.2 (A)](https://www.w3.org/WAI/WCAG21/Understanding/name-role-value.html)"
+    """
+    refs = get_wcag_refs(check_id)
+    if not refs:
+        return ""
+    return ", ".join(r.ref_linked for r in refs)
 
 
 def format_508_ref(check_id: str) -> str:

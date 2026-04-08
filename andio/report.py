@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 from andio.models import Finding, ScanResult, Severity
-from andio.wcag import format_508_ref, format_wcag_short
+from andio.wcag import format_508_ref, format_wcag_linked, format_wcag_short
 
 
 def format_output(result: ScanResult, fmt: str) -> str:
@@ -67,6 +67,7 @@ def format_json(result: ScanResult) -> str:
                 "column": f.column,
                 "element": f.element,
                 "wcag": format_wcag_short(f.check_id),
+                "wcag_linked": format_wcag_linked(f.check_id),
                 "section_508": _format_508(f.check_id),
             }
             for f in result.findings
@@ -110,7 +111,7 @@ def format_github_summary(result: ScanResult) -> str:
             lines.append("|------|----------|-------|-------------------|---------|")
             for f in sorted(findings, key=lambda x: x.line):
                 sev = _severity_emoji(f.severity)
-                wcag = format_wcag_short(f.check_id)
+                wcag = format_wcag_linked(f.check_id)
                 lines.append(f"| {f.line} | {sev} | `{f.check_id}` | {wcag} | {f.message} |")
             lines.append("")
             lines.append("</details>")
