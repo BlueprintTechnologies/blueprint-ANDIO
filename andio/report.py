@@ -7,6 +7,8 @@ import json
 from andio.models import Finding, ScanResult, Severity
 from andio.wcag import format_508_ref, format_wcag_linked, format_wcag_short
 
+_DETAILS_CLOSE = "</details>"
+
 
 def format_output(result: ScanResult, fmt: str) -> str:
     """Dispatch to the appropriate formatter."""
@@ -21,37 +23,52 @@ def format_output(result: ScanResult, fmt: str) -> str:
 def format_text(result: ScanResult) -> str:
     """Human-readable plain text output."""
     lines: list[str] = []
-    lines.append(f"ANDIO scan complete: {len(result.files_scanned)} file(s) scanned")
-    lines.append(
-        f"  {result.error_count} error(s), "
-        f"{result.warning_count} warning(s), "
-        f"{result.info_count} info"
-    )
-    lines.append("")
-
-    if result.findings:
-        # Group by file
-        by_file: dict[str, list[Finding]] = {}
-        for f in result.findings:
-            by_file.setdefault(f.file_path, []).append(f)
-
-        for file_path, findings in sorted(by_file.items()):
-            lines.append(f"--- {file_path} ---")
-            for f in sorted(findings, key=lambda x: x.line):
-                marker = _severity_marker(f.severity)
-                wcag = format_wcag_short(f.check_id)
-                wcag_suffix = f" [{wcag}]" if wcag else ""
-                lines.append(f"  {marker} line {f.line}: [{f.check_id}] {f.message}{wcag_suffix}")
-            lines.append("")
-    else:
-        lines.append("No findings.")
-        lines.append("")
-
+    lines.extend(_text_header(result))
+    lines.extend(_text_findings(result))
     lines.append("=== Not checked by ANDIO (requires live browser) ===")
     for item in result.not_checked:
         lines.append(f"  - {item}")
-
     return "\n".join(lines)
+
+
+def _text_header(result: ScanResult) -> list[str]:
+    lines = [
+        f"ANDIO scan complete: {len(result.files_scanned)} file(s) scanned",
+        (
+            f"  {result.error_count} error(s), "
+            f"{result.warning_count} warning(s), "
+            f"{result.info_count} info"
+        ),
+    ]
+    if result.check_summaries:
+        lines.append(
+            f"  {result.passed_check_count}/{result.total_check_count} check module(s) passed"
+        )
+        for c in result.check_summaries:
+            status = "PASS" if c.passed else f"FAIL ({c.finding_count})"
+            lines.append(f"    [{status}] {c.name}")
+    lines.append("")
+    return lines
+
+
+def _text_findings(result: ScanResult) -> list[str]:
+    if not result.findings:
+        return ["No findings.", ""]
+
+    lines: list[str] = []
+    by_file: dict[str, list[Finding]] = {}
+    for f in result.findings:
+        by_file.setdefault(f.file_path, []).append(f)
+
+    for file_path, findings in sorted(by_file.items()):
+        lines.append(f"--- {file_path} ---")
+        for f in sorted(findings, key=lambda x: x.line):
+            marker = _severity_marker(f.severity)
+            wcag = format_wcag_short(f.check_id)
+            wcag_suffix = f" [{wcag}]" if wcag else ""
+            lines.append(f"  {marker} line {f.line}: [{f.check_id}] {f.message}{wcag_suffix}")
+        lines.append("")
+    return lines
 
 
 def format_json(result: ScanResult) -> str:
@@ -77,8 +94,19 @@ def format_json(result: ScanResult) -> str:
             "errors": result.error_count,
             "warnings": result.warning_count,
             "info": result.info_count,
+            "checks_passed": result.passed_check_count,
+            "checks_total": result.total_check_count,
         },
         "checks_run": result.checks_run,
+        "check_summaries": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "finding_count": c.finding_count,
+                "passed": c.passed,
+            }
+            for c in result.check_summaries
+        ],
         "not_checked": result.not_checked,
     }
     return json.dumps(data, indent=2)
@@ -94,40 +122,66 @@ def format_github_summary(result: ScanResult) -> str:
         f"**{len(result.files_scanned)}** file(s) scanned | "
         f"**{result.error_count}** error(s) | "
         f"**{result.warning_count}** warning(s) | "
-        f"**{result.info_count}** info"
+        f"**{result.info_count}** info | "
+        f"**{result.passed_check_count}/{result.total_check_count}** check modules passed"
     )
     lines.append("")
 
-    if result.findings:
-        # Group by file
-        by_file: dict[str, list[Finding]] = {}
-        for f in result.findings:
-            by_file.setdefault(f.file_path, []).append(f)
-
-        for file_path, findings in sorted(by_file.items()):
-            lines.append(f"<details><summary><code>{file_path}</code> ({len(findings)} finding(s))</summary>")
-            lines.append("")
-            lines.append("| Line | Severity | Check | Section 508 / WCAG | Message |")
-            lines.append("|------|----------|-------|-------------------|---------|")
-            for f in sorted(findings, key=lambda x: x.line):
-                sev = _severity_emoji(f.severity)
-                wcag = format_wcag_linked(f.check_id)
-                lines.append(f"| {f.line} | {sev} | `{f.check_id}` | {wcag} | {f.message} |")
-            lines.append("")
-            lines.append("</details>")
-            lines.append("")
-    else:
-        lines.append("No findings.")
-        lines.append("")
+    lines.extend(_summary_checks_table(result))
+    lines.extend(_summary_findings(result))
 
     lines.append("<details><summary>Not checked by ANDIO (requires live browser)</summary>")
     lines.append("")
     for item in result.not_checked:
         lines.append(f"- {item}")
     lines.append("")
-    lines.append("</details>")
+    lines.append(_DETAILS_CLOSE)
 
     return "\n".join(lines)
+
+
+def _summary_checks_table(result: ScanResult) -> list[str]:
+    if not result.check_summaries:
+        return []
+    lines = [
+        "<details open><summary>Check modules</summary>",
+        "",
+        "| Module | Status | Findings |",
+        "|--------|--------|----------|",
+    ]
+    for c in result.check_summaries:
+        status = "passed" if c.passed else "failed"
+        lines.append(f"| {c.name} | {status} | {c.finding_count} |")
+    lines.append("")
+    lines.append(_DETAILS_CLOSE)
+    lines.append("")
+    return lines
+
+
+def _summary_findings(result: ScanResult) -> list[str]:
+    if not result.findings:
+        return ["No findings.", ""]
+
+    by_file: dict[str, list[Finding]] = {}
+    for f in result.findings:
+        by_file.setdefault(f.file_path, []).append(f)
+
+    lines: list[str] = []
+    for file_path, findings in sorted(by_file.items()):
+        lines.append(
+            f"<details><summary><code>{file_path}</code> ({len(findings)} finding(s))</summary>"
+        )
+        lines.append("")
+        lines.append("| Line | Severity | Check | Section 508 / WCAG | Message |")
+        lines.append("|------|----------|-------|-------------------|---------|")
+        for f in sorted(findings, key=lambda x: x.line):
+            sev = _severity_emoji(f.severity)
+            wcag = format_wcag_linked(f.check_id)
+            lines.append(f"| {f.line} | {sev} | `{f.check_id}` | {wcag} | {f.message} |")
+        lines.append("")
+        lines.append(_DETAILS_CLOSE)
+        lines.append("")
+    return lines
 
 
 def _format_508(check_id: str) -> str:

@@ -17,6 +17,21 @@ class TestEndToEndScan:
         assert len(result.files_scanned) > 0
         assert len(result.checks_run) == 6  # all 6 v1 check modules
 
+    def test_check_summaries_populated(self):
+        result = scan([FIXTURES])
+        assert len(result.check_summaries) == 6
+        module_ids = {c.id for c in result.check_summaries}
+        assert module_ids == {"global", "focusable", "links", "structures", "graphics", "hidden"}
+        # Every finding must be reflected in exactly one module's count
+        assert sum(c.finding_count for c in result.check_summaries) == len(result.findings)
+        # Each summary must have a human-readable name
+        assert all(c.name for c in result.check_summaries)
+
+    def test_clean_scan_all_checks_pass(self):
+        result = scan([os.path.join(FIXTURES, "clean.html")])
+        assert result.passed_check_count == result.total_check_count
+        assert all(c.passed for c in result.check_summaries)
+
     def test_scan_single_html(self):
         result = scan([os.path.join(FIXTURES, "global_violations.html")])
         assert len(result.files_scanned) == 1
@@ -76,6 +91,12 @@ class TestCLIIntegration:
         assert "summary" in data
         assert "not_checked" in data
         assert data["summary"]["errors"] > 0
+        # Pass counts and per-module rollup are exposed for the PR comment
+        assert "checks_passed" in data["summary"]
+        assert data["summary"]["checks_total"] == 6
+        assert len(data["check_summaries"]) == 6
+        sample = data["check_summaries"][0]
+        assert {"id", "name", "finding_count", "passed"} <= set(sample.keys())
 
     def test_github_summary_format(self):
         runner = CliRunner()
@@ -85,6 +106,10 @@ class TestCLIIntegration:
         ])
         assert "## ANDIO Accessibility Scan" in result.output
         assert "<details>" in result.output
+        # Headline pass count and check module rollup are present
+        assert "check modules passed" in result.output
+        assert "Check modules" in result.output
+        assert "| Module | Status | Findings |" in result.output
 
     def test_checks_filter_flag(self):
         runner = CliRunner()

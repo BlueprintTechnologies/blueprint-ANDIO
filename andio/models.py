@@ -36,14 +36,36 @@ class Finding:
 
 
 @dataclass
+class CheckSummary:
+    """Per-check-module rollup: how many findings a given module produced."""
+
+    id: str           # module id, e.g. "links"
+    name: str         # human-readable, e.g. "Links / Buttons"
+    finding_count: int
+
+    @property
+    def passed(self) -> bool:
+        return self.finding_count == 0
+
+
+@dataclass
 class ScanResult:
     """Aggregated results from a full scan."""
 
     findings: list[Finding] = field(default_factory=list)
     files_scanned: list[str] = field(default_factory=list)
     checks_run: list[str] = field(default_factory=list)
+    check_summaries: list[CheckSummary] = field(default_factory=list)
     not_checked: list[str] = field(default_factory=list)
     template_variable_count: int = 0
+
+    @property
+    def passed_check_count(self) -> int:
+        return sum(1 for c in self.check_summaries if c.passed)
+
+    @property
+    def total_check_count(self) -> int:
+        return len(self.check_summaries)
 
     @property
     def error_count(self) -> int:

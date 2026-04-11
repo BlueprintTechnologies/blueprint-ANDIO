@@ -81,8 +81,11 @@ runs:
         warnings = data["summary"]["warnings"]
         info = data["summary"]["info"]
         files = data["summary"]["files_scanned"]
+        checks_passed = data["summary"].get("checks_passed", 0)
+        checks_total = data["summary"].get("checks_total", 0)
         findings = data["findings"]
         not_checked = data["not_checked"]
+        check_summaries = data.get("check_summaries", [])
 
         # Shields.io badge helpers
         def badge(label, value, color):
@@ -106,7 +109,25 @@ runs:
 
         lines.append("")
         lines.append("**Measures**")
-        lines.append(f"{badge('files scanned', str(files), '4a86cf')} {badge('check modules', str(len(data['checks_run'])), '4a86cf')}")
+        checks_color = "brightgreen" if checks_passed == checks_total else "orange"
+        checks_value = f"{checks_passed}%2F{checks_total}"
+        lines.append(
+            f"{badge('files scanned', str(files), '4a86cf')} "
+            f"{badge('checks passed', checks_value, checks_color)}"
+        )
+
+        if check_summaries:
+            lines.append("")
+            lines.append("**Check modules**")
+            lines.append("")
+            lines.append("| Module | Status | Findings |")
+            lines.append("|--------|--------|----------|")
+            for c in check_summaries:
+                if c["passed"]:
+                    status_badge = f"![passed](https://img.shields.io/badge/-PASSED-brightgreen?style=flat-square)"
+                else:
+                    status_badge = f"![failed](https://img.shields.io/badge/-FAILED-red?style=flat-square)"
+                lines.append(f"| {c['name']} | {status_badge} | {c['finding_count']} |")
 
         if findings:
             lines.append("")

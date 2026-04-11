@@ -10,7 +10,7 @@ from andio.checks import get_checks
 from andio.checks.base import DocumentContext
 from andio.css_parser import CSSRule, parse_css
 from andio.html_parser import ParsedHTML, parse_html
-from andio.models import Finding, ScanResult
+from andio.models import CheckSummary, Finding, ScanResult
 from andio.not_checked import get_not_checked
 
 
@@ -47,6 +47,7 @@ def scan(
 
     all_findings: List[Finding] = []
     template_var_count = 0
+    per_check_counts: dict[str, int] = {c.id: 0 for c in checks}
 
     for html_file in html_files:
         parsed = parse_html(html_file)
@@ -61,11 +62,18 @@ def scan(
         for check in checks:
             findings = check.run(parsed, context, css_rules)
             all_findings.extend(findings)
+            per_check_counts[check.id] += len(findings)
+
+    check_summaries = [
+        CheckSummary(id=c.id, name=c.name, finding_count=per_check_counts[c.id])
+        for c in checks
+    ]
 
     return ScanResult(
         findings=all_findings,
         files_scanned=all_files,
         checks_run=[c.id for c in checks],
+        check_summaries=check_summaries,
         not_checked=get_not_checked(template_var_count),
         template_variable_count=template_var_count,
     )
