@@ -7,16 +7,18 @@ from pathlib import Path
 from typing import List, Optional
 
 from andio.checks import get_checks
-from andio.checks.base import DocumentContext
+from andio.checks.base import BaseCheck, DocumentContext
 from andio.css_parser import CSSRule, parse_css
 from andio.html_parser import ParsedHTML, parse_html
-from andio.models import CheckSummary, Finding, ScanResult
+from andio.models import CheckSummary, Finding, RuleSummary, ScanResult
 from andio.not_checked import get_not_checked
 
 
 HTML_EXTENSIONS = {".html", ".htm", ".jinja", ".jinja2", ".j2"}
 CSS_EXTENSIONS = {".css"}
 SCANNABLE_EXTENSIONS = HTML_EXTENSIONS | CSS_EXTENSIONS
+
+_TEMPLATE_VAR_ATTRS = ("alt", "aria-label", "aria-labelledby", "aria-describedby", "title")
 
 
 def scan(
@@ -39,35 +41,25 @@ def scan(
     css_files = [f for f in all_files if Path(f).suffix in CSS_EXTENSIONS]
 
     checks = get_checks(names=check_names, version="v1")
-
-    # Parse all CSS files once — rules are shared across HTML file checks
-    css_rules: List[CSSRule] = []
-    for css_file in css_files:
-        css_rules.extend(parse_css(css_file))
+    css_rules = _parse_css_files(css_files)
 
     all_findings: List[Finding] = []
     template_var_count = 0
     per_check_counts: dict[str, int] = {c.id: 0 for c in checks}
+    per_rule_counts: dict[str, int] = {
+        rule_id: 0 for c in checks for rule_id in c.rule_ids
+    }
 
     for html_file in html_files:
         parsed = parse_html(html_file)
         context = DocumentContext(parsed)
+        template_var_count += _count_template_vars(parsed)
+        _run_checks_for_file(
+            checks, parsed, context, css_rules,
+            all_findings, per_check_counts, per_rule_counts,
+        )
 
-        # Count template variable attributes for the "not checked" section
-        for tag in parsed.all_tags:
-            for attr in ("alt", "aria-label", "aria-labelledby", "aria-describedby", "title"):
-                if parsed.is_template_variable(tag, attr):
-                    template_var_count += 1
-
-        for check in checks:
-            findings = check.run(parsed, context, css_rules)
-            all_findings.extend(findings)
-            per_check_counts[check.id] += len(findings)
-
-    check_summaries = [
-        CheckSummary(id=c.id, name=c.name, finding_count=per_check_counts[c.id])
-        for c in checks
-    ]
+    check_summaries = _build_check_summaries(checks, per_check_counts, per_rule_counts)
 
     return ScanResult(
         findings=all_findings,
@@ -77,6 +69,63 @@ def scan(
         not_checked=get_not_checked(template_var_count),
         template_variable_count=template_var_count,
     )
+
+
+def _parse_css_files(css_files: List[str]) -> List[CSSRule]:
+    """Parse all CSS files once — rules are shared across HTML file checks."""
+    rules: List[CSSRule] = []
+    for css_file in css_files:
+        rules.extend(parse_css(css_file))
+    return rules
+
+
+def _count_template_vars(parsed: ParsedHTML) -> int:
+    """Count attributes whose values were stripped as template variables."""
+    count = 0
+    for tag in parsed.all_tags:
+        for attr in _TEMPLATE_VAR_ATTRS:
+            if parsed.is_template_variable(tag, attr):
+                count += 1
+    return count
+
+
+def _run_checks_for_file(
+    checks: List[BaseCheck],
+    parsed: ParsedHTML,
+    context: DocumentContext,
+    css_rules: List[CSSRule],
+    all_findings: List[Finding],
+    per_check_counts: dict,
+    per_rule_counts: dict,
+) -> None:
+    """Run every check against a parsed file and update aggregate counters."""
+    for check in checks:
+        findings = check.run(parsed, context, css_rules)
+        all_findings.extend(findings)
+        per_check_counts[check.id] += len(findings)
+        for f in findings:
+            if f.check_id in per_rule_counts:
+                per_rule_counts[f.check_id] += 1
+
+
+def _build_check_summaries(
+    checks: List[BaseCheck],
+    per_check_counts: dict,
+    per_rule_counts: dict,
+) -> List[CheckSummary]:
+    """Compose CheckSummary objects (with nested RuleSummary) from counters."""
+    return [
+        CheckSummary(
+            id=c.id,
+            name=c.name,
+            finding_count=per_check_counts[c.id],
+            rules=[
+                RuleSummary(id=rid, finding_count=per_rule_counts[rid])
+                for rid in c.rule_ids
+            ],
+        )
+        for c in checks
+    ]
 
 
 def _resolve_files(paths: List[str]) -> List[str]:

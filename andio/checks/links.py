@@ -33,6 +33,10 @@ class LinkChecks(BaseCheck):
     id = "links"
     name = "Links / Buttons"
     version = "v1"
+    rule_ids = [
+        "ANDI-0069", "ANDI-007B", "ANDI-0128",
+        "ANDI-0161", "ANDI-0163", "ANDI-0168",
+    ]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []

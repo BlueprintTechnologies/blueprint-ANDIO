@@ -83,6 +83,8 @@ runs:
         files = data["summary"]["files_scanned"]
         checks_passed = data["summary"].get("checks_passed", 0)
         checks_total = data["summary"].get("checks_total", 0)
+        rules_passed = data["summary"].get("rules_passed", 0)
+        rules_total = data["summary"].get("rules_total", 0)
         findings = data["findings"]
         not_checked = data["not_checked"]
         check_summaries = data.get("check_summaries", [])
@@ -111,23 +113,44 @@ runs:
         lines.append("**Measures**")
         checks_color = "brightgreen" if checks_passed == checks_total else "orange"
         checks_value = f"{checks_passed}%2F{checks_total}"
+        rules_color = "brightgreen" if rules_passed == rules_total else "orange"
+        rules_value = f"{rules_passed}%2F{rules_total}"
         lines.append(
             f"{badge('files scanned', str(files), '4a86cf')} "
-            f"{badge('checks passed', checks_value, checks_color)}"
+            f"{badge('modules passed', checks_value, checks_color)} "
+            f"{badge('ANDI rules passed', rules_value, rules_color)}"
         )
 
         if check_summaries:
             lines.append("")
             lines.append("**Check modules**")
             lines.append("")
-            lines.append("| Module | Status | Findings |")
-            lines.append("|--------|--------|----------|")
+            lines.append("| Module | Status | Rules passed | Findings |")
+            lines.append("|--------|--------|--------------|----------|")
             for c in check_summaries:
                 if c["passed"]:
                     status_badge = f"![passed](https://img.shields.io/badge/-PASSED-brightgreen?style=flat-square)"
                 else:
                     status_badge = f"![failed](https://img.shields.io/badge/-FAILED-red?style=flat-square)"
-                lines.append(f"| {c['name']} | {status_badge} | {c['finding_count']} |")
+                rule_progress = f"{c.get('rules_passed', 0)}/{c.get('rules_total', 0)}"
+                lines.append(f"| {c['name']} | {status_badge} | {rule_progress} | {c['finding_count']} |")
+
+            # Per-rule drill-down, collapsed
+            lines.append("")
+            lines.append("<details><summary>ANDI rules (per-rule pass/fail)</summary>")
+            lines.append("")
+            lines.append("| Module | Rule | Status | Section 508 / WCAG | Findings |")
+            lines.append("|--------|------|--------|-------------------|----------|")
+            for c in check_summaries:
+                for r in c.get("rules", []):
+                    if r["passed"]:
+                        rule_badge = f"![passed](https://img.shields.io/badge/-PASSED-brightgreen?style=flat-square)"
+                    else:
+                        rule_badge = f"![failed](https://img.shields.io/badge/-FAILED-red?style=flat-square)"
+                    wcag = r.get("wcag_linked", r.get("wcag", ""))
+                    lines.append(f"| {c['name']} | `{r['id']}` | {rule_badge} | {wcag} | {r['finding_count']} |")
+            lines.append("")
+            lines.append("</details>")
 
         if findings:
             lines.append("")

@@ -42,11 +42,15 @@ def _text_header(result: ScanResult) -> list[str]:
     ]
     if result.check_summaries:
         lines.append(
-            f"  {result.passed_check_count}/{result.total_check_count} check module(s) passed"
+            f"  {result.passed_check_count}/{result.total_check_count} check module(s) passed, "
+            f"{result.passed_rule_count}/{result.total_rule_count} ANDI rule(s) passed"
         )
         for c in result.check_summaries:
             status = "PASS" if c.passed else f"FAIL ({c.finding_count})"
-            lines.append(f"    [{status}] {c.name}")
+            lines.append(
+                f"    [{status}] {c.name} "
+                f"({c.passed_rule_count}/{c.total_rule_count} rules)"
+            )
     lines.append("")
     return lines
 
@@ -96,6 +100,8 @@ def format_json(result: ScanResult) -> str:
             "info": result.info_count,
             "checks_passed": result.passed_check_count,
             "checks_total": result.total_check_count,
+            "rules_passed": result.passed_rule_count,
+            "rules_total": result.total_rule_count,
         },
         "checks_run": result.checks_run,
         "check_summaries": [
@@ -104,6 +110,19 @@ def format_json(result: ScanResult) -> str:
                 "name": c.name,
                 "finding_count": c.finding_count,
                 "passed": c.passed,
+                "rules_passed": c.passed_rule_count,
+                "rules_total": c.total_rule_count,
+                "rules": [
+                    {
+                        "id": r.id,
+                        "finding_count": r.finding_count,
+                        "passed": r.passed,
+                        "wcag": format_wcag_short(r.id),
+                        "wcag_linked": format_wcag_linked(r.id),
+                        "section_508": _format_508(r.id),
+                    }
+                    for r in c.rules
+                ],
             }
             for c in result.check_summaries
         ],
@@ -123,11 +142,13 @@ def format_github_summary(result: ScanResult) -> str:
         f"**{result.error_count}** error(s) | "
         f"**{result.warning_count}** warning(s) | "
         f"**{result.info_count}** info | "
-        f"**{result.passed_check_count}/{result.total_check_count}** check modules passed"
+        f"**{result.passed_check_count}/{result.total_check_count}** modules passed | "
+        f"**{result.passed_rule_count}/{result.total_rule_count}** ANDI rules passed"
     )
     lines.append("")
 
     lines.extend(_summary_checks_table(result))
+    lines.extend(_summary_rules_table(result))
     lines.extend(_summary_findings(result))
 
     lines.append("<details><summary>Not checked by ANDIO (requires live browser)</summary>")
@@ -146,12 +167,34 @@ def _summary_checks_table(result: ScanResult) -> list[str]:
     lines = [
         "<details open><summary>Check modules</summary>",
         "",
-        "| Module | Status | Findings |",
-        "|--------|--------|----------|",
+        "| Module | Status | Rules passed | Findings |",
+        "|--------|--------|--------------|----------|",
     ]
     for c in result.check_summaries:
         status = "passed" if c.passed else "failed"
-        lines.append(f"| {c.name} | {status} | {c.finding_count} |")
+        rule_progress = f"{c.passed_rule_count}/{c.total_rule_count}"
+        lines.append(f"| {c.name} | {status} | {rule_progress} | {c.finding_count} |")
+    lines.append("")
+    lines.append(_DETAILS_CLOSE)
+    lines.append("")
+    return lines
+
+
+def _summary_rules_table(result: ScanResult) -> list[str]:
+    """Per-rule pass/fail drill-down, collapsed by default."""
+    if not result.check_summaries:
+        return []
+    lines = [
+        "<details><summary>ANDI rules (per-rule pass/fail)</summary>",
+        "",
+        "| Module | Rule | Status | Section 508 / WCAG | Findings |",
+        "|--------|------|--------|-------------------|----------|",
+    ]
+    for c in result.check_summaries:
+        for r in c.rules:
+            status = "passed" if r.passed else "failed"
+            wcag = format_wcag_linked(r.id)
+            lines.append(f"| {c.name} | `{r.id}` | {status} | {wcag} | {r.finding_count} |")
     lines.append("")
     lines.append(_DETAILS_CLOSE)
     lines.append("")

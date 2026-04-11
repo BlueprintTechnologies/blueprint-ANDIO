@@ -36,16 +36,37 @@ class Finding:
 
 
 @dataclass
-class CheckSummary:
-    """Per-check-module rollup: how many findings a given module produced."""
+class RuleSummary:
+    """Per-ANDI-rule rollup: how many findings a single rule produced."""
 
-    id: str           # module id, e.g. "links"
-    name: str         # human-readable, e.g. "Links / Buttons"
+    id: str               # ANDI rule id, e.g. "ANDI-0002"
     finding_count: int
 
     @property
     def passed(self) -> bool:
         return self.finding_count == 0
+
+
+@dataclass
+class CheckSummary:
+    """Per-check-module rollup with nested per-rule detail."""
+
+    id: str           # module id, e.g. "links"
+    name: str         # human-readable, e.g. "Links / Buttons"
+    finding_count: int
+    rules: list[RuleSummary] = field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return self.finding_count == 0
+
+    @property
+    def passed_rule_count(self) -> int:
+        return sum(1 for r in self.rules if r.passed)
+
+    @property
+    def total_rule_count(self) -> int:
+        return len(self.rules)
 
 
 @dataclass
@@ -66,6 +87,14 @@ class ScanResult:
     @property
     def total_check_count(self) -> int:
         return len(self.check_summaries)
+
+    @property
+    def passed_rule_count(self) -> int:
+        return sum(c.passed_rule_count for c in self.check_summaries)
+
+    @property
+    def total_rule_count(self) -> int:
+        return sum(c.total_rule_count for c in self.check_summaries)
 
     @property
     def error_count(self) -> int:

@@ -40,6 +40,10 @@ class StructureChecks(BaseCheck):
     id = "structures"
     name = "Structures / Headings"
     version = "v1"
+    rule_ids = [
+        "ANDI-0005", "ANDI-0133", "ANDI-0182", "ANDI-0184",
+        "ANDI-0191", "ANDI-0192", "ANDI-0194",
+    ]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []

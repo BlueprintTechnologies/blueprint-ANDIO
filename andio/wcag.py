@@ -89,7 +89,6 @@ CHECK_TO_WCAG: Dict[str, List[str]] = {
     "ANDI-006B": ["4.1.2"],                  # Reference to legend
     "ANDI-006C": ["4.1.2"],                  # Nested references
     "ANDI-006D": ["4.1.2"],                  # Duplicate reference
-    "ANDI-006E": ["4.1.2"],                  # Direct+indirect reference
     "ANDI-006F": ["3.3.2", "4.1.2"],         # Label mismatch
     "ANDI-0073": ["2.4.2"],                  # Multiple titles
     "ANDI-0074": ["1.3.1"],                  # More legends than fieldsets

@@ -27,10 +27,46 @@ class TestEndToEndScan:
         # Each summary must have a human-readable name
         assert all(c.name for c in result.check_summaries)
 
+    def test_rule_summaries_populated(self):
+        result = scan([FIXTURES])
+        # 49 ANDI rules across 6 modules
+        assert result.total_rule_count == 49
+        assert 0 <= result.passed_rule_count <= result.total_rule_count
+        # Per-module rule counts add up to the global total
+        assert sum(c.total_rule_count for c in result.check_summaries) == 49
+        # Every rule that fired in findings must be marked as failed
+        fired_ids = {f.check_id for f in result.findings}
+        for c in result.check_summaries:
+            for r in c.rules:
+                if r.id in fired_ids:
+                    assert not r.passed
+                    assert r.finding_count > 0
+
     def test_clean_scan_all_checks_pass(self):
         result = scan([os.path.join(FIXTURES, "clean.html")])
         assert result.passed_check_count == result.total_check_count
         assert all(c.passed for c in result.check_summaries)
+        # Clean scan = every rule passed
+        assert result.passed_rule_count == result.total_rule_count
+        assert all(r.passed for c in result.check_summaries for r in c.rules)
+
+    def test_rule_ids_match_wcag_registry(self):
+        """Every rule_id declared by a check must have a WCAG mapping."""
+        from andio.checks import get_checks
+        from andio.wcag import CHECK_TO_WCAG
+        for check in get_checks():
+            for rule_id in check.rule_ids:
+                assert rule_id in CHECK_TO_WCAG, (
+                    f"{check.id} declares {rule_id} but it has no WCAG mapping"
+                )
+
+    def test_no_orphan_rules_in_wcag_registry(self):
+        """Every WCAG registry entry must be owned by some check module."""
+        from andio.checks import get_checks
+        from andio.wcag import CHECK_TO_WCAG
+        owned = {rid for c in get_checks() for rid in c.rule_ids}
+        orphans = set(CHECK_TO_WCAG.keys()) - owned
+        assert orphans == set(), f"Orphan rules in WCAG registry: {orphans}"
 
     def test_scan_single_html(self):
         result = scan([os.path.join(FIXTURES, "global_violations.html")])
@@ -94,9 +130,13 @@ class TestCLIIntegration:
         # Pass counts and per-module rollup are exposed for the PR comment
         assert "checks_passed" in data["summary"]
         assert data["summary"]["checks_total"] == 6
+        assert data["summary"]["rules_total"] == 49
+        assert "rules_passed" in data["summary"]
         assert len(data["check_summaries"]) == 6
         sample = data["check_summaries"][0]
-        assert {"id", "name", "finding_count", "passed"} <= set(sample.keys())
+        assert {"id", "name", "finding_count", "passed", "rules_passed", "rules_total", "rules"} <= set(sample.keys())
+        rule = sample["rules"][0]
+        assert {"id", "finding_count", "passed", "wcag", "wcag_linked"} <= set(rule.keys())
 
     def test_github_summary_format(self):
         runner = CliRunner()
@@ -106,10 +146,12 @@ class TestCLIIntegration:
         ])
         assert "## ANDIO Accessibility Scan" in result.output
         assert "<details>" in result.output
-        # Headline pass count and check module rollup are present
-        assert "check modules passed" in result.output
+        # Headline pass counts and rollup tables are present
+        assert "modules passed" in result.output
+        assert "ANDI rules passed" in result.output
         assert "Check modules" in result.output
-        assert "| Module | Status | Findings |" in result.output
+        assert "| Module | Status | Rules passed | Findings |" in result.output
+        assert "ANDI rules (per-rule pass/fail)" in result.output
 
     def test_checks_filter_flag(self):
         runner = CliRunner()

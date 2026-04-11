@@ -56,9 +56,10 @@ class BaseCheck(ABC):
     """Abstract base for all accessibility checks."""
 
     # Subclasses must define these
-    id: str = ""          # e.g., "global", "focusable", "links"
-    name: str = ""        # Human-readable name
-    version: str = "v1"   # "v1" or "v2"
+    id: str = ""              # e.g., "global", "focusable", "links"
+    name: str = ""            # Human-readable name
+    version: str = "v1"       # "v1" or "v2"
+    rule_ids: List[str] = []  # ANDI rule IDs this module owns, e.g. ["ANDI-0002", ...]
 
     @abstractmethod
     def run(

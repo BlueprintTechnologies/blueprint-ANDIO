@@ -104,6 +104,10 @@ class FocusableChecks(BaseCheck):
     id = "focusable"
     name = "Focusable Elements"
     version = "v1"
+    rule_ids = [
+        "ANDI-0002", "ANDI-0008", "ANDI-0052", "ANDI-0054", "ANDI-0055",
+        "ANDI-0056", "ANDI-0121", "ANDI-0122", "ANDI-0123",
+    ]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []

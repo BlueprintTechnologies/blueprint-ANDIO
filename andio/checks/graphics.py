@@ -41,6 +41,7 @@ class GraphicsChecks(BaseCheck):
     id = "graphics"
     name = "Graphics / Images"
     version = "v1"
+    rule_ids = ["ANDI-0174", "ANDI-0175", "ANDI-0176"]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []

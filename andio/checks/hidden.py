@@ -20,6 +20,7 @@ class HiddenChecks(BaseCheck):
     id = "hidden"
     name = "Hidden Content"
     version = "v1"
+    rule_ids = ["ANDI-0220"]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []

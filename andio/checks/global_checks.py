@@ -1,6 +1,6 @@
 """Global / cross-module accessibility checks (ANDI Main module).
 
-Implements 24 v1 checks covering:
+Implements 23 v1 checks covering:
 - Reference integrity (ARIA refs, label mismatches)
 - Structural orphans (legends, figcaptions, captions, titles)
 - ARIA edge cases (misspellings, multiple roles, unreliable combos)
@@ -86,6 +86,13 @@ class GlobalChecks(BaseCheck):
     id = "global"
     name = "Global / Cross-module"
     version = "v1"
+    rule_ids = [
+        "ANDI-0012", "ANDI-0021", "ANDI-0022", "ANDI-0031", "ANDI-0033",
+        "ANDI-0063", "ANDI-0065", "ANDI-006B", "ANDI-006C", "ANDI-006D",
+        "ANDI-006F", "ANDI-0073", "ANDI-0074", "ANDI-0075", "ANDI-0076",
+        "ANDI-0078", "ANDI-0081", "ANDI-0091", "ANDI-0101", "ANDI-0112",
+        "ANDI-0151", "ANDI-0200", "ANDI-0210",
+    ]
 
     def run(self, parsed: ParsedHTML, context: DocumentContext, css_rules: List[CSSRule]) -> List[Finding]:
         findings: List[Finding] = []
@@ -211,7 +218,7 @@ class GlobalChecks(BaseCheck):
                         ))
         return findings
 
-    # ANDI-006D / ANDI-006E: Duplicate references to same ID
+    # ANDI-006D: Duplicate references to same ID
     def _check_duplicate_id_references(self, parsed: ParsedHTML, context: DocumentContext) -> List[Finding]:
         findings = []
         for tag, attr, ref_ids in _iter_aria_refs(parsed):
